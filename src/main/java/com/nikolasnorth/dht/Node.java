@@ -6,12 +6,13 @@ import java.util.Optional;
 
 public final class Node<K, V> {
 
-  // Number of bits in the keyspace since Java's implementation of Object.hashCode() returns a 32-bit integer.
+  // Java's Object.hashCode() will be the consistent hash function used to create keys. The implementation of hashCode()
+  // returns a 32-bit integer, thus representing the number of bits in the keyspace.
   private final static int m = 32;
 
-  private Config config;
+  private final Config config;
 
-  private final List<Document<K, V>> storage;
+  private final List<Resource<K, V>> storage;
 
   private final List<FingerEntry<K, V>> finger;
 
@@ -29,6 +30,19 @@ public final class Node<K, V> {
   }
 
   /**
+   * Creates a new node and adds it to the cluster. Returns the newly inserted node.
+   *
+   * @param host New node's host
+   * @param port New node's port number
+   * @return Newly inserted node
+   */
+  public Node<K, V> addNode(String host, int port) {
+    final Node<K, V> node = new Node<>(host, port);
+
+    return node;
+  }
+
+  /**
    * Returns the node that directly maps to the given id, or immediately succeeds it.
    *
    * @param id node identifier
@@ -36,6 +50,10 @@ public final class Node<K, V> {
    */
   Node<K, V> findSuccessor(int id) {
     return null;
+    /**
+     * n' := findPredecessor(id)
+     * return n'.successor
+     */
   }
 
   /**
@@ -46,6 +64,12 @@ public final class Node<K, V> {
    */
   Node<K, V> findPredecessor(int id) {
     return null;
+    /**
+     * n' := this
+     * while id is not between nodes n' and n'.successor do:
+     *    n' := n'.closestPrecedingFinger(id);
+     * return n'
+     */
   }
 
   /**
@@ -55,7 +79,12 @@ public final class Node<K, V> {
    * @return id's closest preceding node in the finger table
    */
   Node<K, V> closestPrecedingFinger(int id) {
-    return null;
+    for (int i = m - 1; i >= 0; i--) {
+      if (finger.get(i).isBetween(this.config.id, id)) {
+        return finger.get(i).node;
+      }
+    }
+    return this;
   }
 
   /**
@@ -74,26 +103,49 @@ public final class Node<K, V> {
    *
    * @param document Document to be stored
    */
-  void put(Document<K, V> document) {
+  void put(Resource<K, V> document) {
   }
 
   private final static class Config {
-    private String host;
-    private int port;
+
+    private final String host;
+
+    private final int port;
+
+    private final int id;
 
     private Config(String host, int port) {
       this.host = host;
       this.port = port;
+      this.id = host.hashCode();
     }
   }
 
-  private final static class Document<K, V> {
+  private final static class Resource<K, V> {
     private K key;
     private V value;
   }
 
   private final static class FingerEntry<K, V> {
-    private String id;
+
+    private int id;
+
     private Node<K, V> node;
+
+    /**
+     * Checks if this finger entry's id is strictly between id's a and b.
+     * @param a Chord key
+     * @param b Chord key
+     * @return true if between a and b, false otherwise
+     */
+    public boolean isBetween(int a, int b) {
+      if (a < b) {
+        return a < id && b >= id;
+      } else if (a > b) {
+        return a < id || b >= id;
+      } else {
+        return a < id || a > id;
+      }
+    }
   }
 }
