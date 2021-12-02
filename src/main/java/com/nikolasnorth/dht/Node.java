@@ -49,11 +49,12 @@ public final class Node<K, V> {
    * @return id's successor node
    */
   Node<K, V> findSuccessor(int id) {
-    return null;
-    /**
-     * n' := findPredecessor(id)
-     * return n'.successor
-     */
+    // Check if `id` is between this node and successor. That is, between the interval (config.id, successor.id]
+    if (Util.strictlyBetween(id, config.id, successor.id) || id == successor.id) {
+      return successor.node;
+    }
+    // Forward query to the next closest node in the finger table
+    return closestPrecedingFinger(id).findSuccessor(id);
   }
 
   /**
@@ -63,13 +64,13 @@ public final class Node<K, V> {
    * @return id's preceding node
    */
   Node<K, V> findPredecessor(int id) {
-    return null;
     /**
      * n' := this
-     * while id is not between nodes n' and n'.successor do:
+     * while id not in range (n' and n'.successor] do:
      *    n' := n'.closestPrecedingFinger(id);
      * return n'
      */
+    return null;
   }
 
   /**
@@ -80,7 +81,7 @@ public final class Node<K, V> {
    */
   Node<K, V> closestPrecedingFinger(int id) {
     for (int i = m - 1; i >= 0; i--) {
-      if (finger.get(i).isBetween(this.config.id, id)) {
+      if (Util.strictlyBetween(finger.get(i).id, config.id, id)) {
         return finger.get(i).node;
       }
     }
@@ -107,11 +108,8 @@ public final class Node<K, V> {
   }
 
   private final static class Config {
-
     private final String host;
-
     private final int port;
-
     private final int id;
 
     private Config(String host, int port) {
@@ -127,25 +125,7 @@ public final class Node<K, V> {
   }
 
   private final static class FingerEntry<K, V> {
-
     private int id;
-
     private Node<K, V> node;
-
-    /**
-     * Checks if this finger entry's id is strictly between id's a and b.
-     * @param a Chord key
-     * @param b Chord key
-     * @return true if between a and b, false otherwise
-     */
-    public boolean isBetween(int a, int b) {
-      if (a < b) {
-        return a < id && b >= id;
-      } else if (a > b) {
-        return a < id || b >= id;
-      } else {
-        return a < id || a > id;
-      }
-    }
   }
 }
