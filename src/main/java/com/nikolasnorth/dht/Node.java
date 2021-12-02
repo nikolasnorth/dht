@@ -43,45 +43,38 @@ public final class Node<K, V> {
   }
 
   /**
-   * Returns the node that directly maps to the given id, or immediately succeeds it.
+   * Returns the node that directly maps to the given key, or immediately succeeds it.
    *
-   * @param id node identifier
-   * @return id's successor node
+   * @param key Chord key
+   * @return key's successor node
    */
-  Node<K, V> findSuccessor(int id) {
-    // Check if `id` is between this node and successor. That is, between the interval (config.id, successor.id]
-    if (Util.strictlyBetween(id, config.id, successor.id) || id == successor.id) {
-      return successor.node;
-    }
-    // Forward query to the next closest node in the finger table
-    return closestPrecedingFinger(id).findSuccessor(id);
+  Node<K, V> findSuccessor(int key) {
+    return findPredecessor(key).successor.node;
   }
 
   /**
    * Returns the node that immediately precedes the given key.
    *
-   * @param id node identifier
-   * @return id's preceding node
+   * @param key Chord key
+   * @return key's preceding node
    */
-  Node<K, V> findPredecessor(int id) {
-    /**
-     * n' := this
-     * while id not in range (n' and n'.successor] do:
-     *    n' := n'.closestPrecedingFinger(id);
-     * return n'
-     */
-    return null;
+  Node<K, V> findPredecessor(int key) {
+    Node<K, V> prev = this;
+    while (Util.strictlyBetween(key, prev.config.id, prev.successor.id) || key == prev.successor.id) {
+      prev = prev.closestPrecedingFinger(key);
+    }
+    return prev;
   }
 
   /**
-   * Returns id's closest preceding node in the finger table.
+   * Returns the key's closest preceding node in the finger table.
    *
-   * @param id node identifier
+   * @param key Chord key
    * @return id's closest preceding node in the finger table
    */
-  Node<K, V> closestPrecedingFinger(int id) {
+  Node<K, V> closestPrecedingFinger(int key) {
     for (int i = m - 1; i >= 0; i--) {
-      if (Util.strictlyBetween(finger.get(i).id, config.id, id)) {
+      if (Util.strictlyBetween(finger.get(i).id, config.id, key)) {
         return finger.get(i).node;
       }
     }
