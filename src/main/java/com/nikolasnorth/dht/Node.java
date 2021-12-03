@@ -1,5 +1,9 @@
 package com.nikolasnorth.dht;
 
+import com.sun.net.httpserver.HttpServer;
+
+import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -10,7 +14,9 @@ public final class Node<K, V> {
   // returns a 32-bit integer, thus representing the number of bits in the keyspace.
   private final static int m = 32;
 
-  private final Config config;
+  private final int key;
+
+  private final String ipAddress;
 
   private final List<Resource<K, V>> storage;
 
@@ -22,11 +28,21 @@ public final class Node<K, V> {
   private FingerEntry<K, V> successor;
 
   public Node(String host, int port) {
-    config = new Config(host, port);
+    this.ipAddress = String.format("%s:%d", host, port);
+    key = ipAddress.hashCode();
     storage = new ArrayList<>();
     finger = new ArrayList<>(m);
     predecessor = null;
     successor = null;
+
+    try {
+      final HttpServer server = HttpServer.create(new InetSocketAddress(host, port), 0);
+      server.start();
+      System.out.printf("Server listening on http://%s:%d%n", host, port);
+
+    } catch (IOException e) {
+      System.err.println("Could not start server.");
+    }
   }
 
   /**
@@ -37,9 +53,7 @@ public final class Node<K, V> {
    * @return Newly inserted node
    */
   public Node<K, V> addNode(String host, int port) {
-    final Node<K, V> node = new Node<>(host, port);
-
-    return node;
+    return new Node<>(host, port);
   }
 
   /**
@@ -60,7 +74,7 @@ public final class Node<K, V> {
    */
   Node<K, V> findPredecessor(int key) {
     Node<K, V> prev = this;
-    while (Util.strictlyBetween(key, prev.config.id, prev.successor.id) || key == prev.successor.id) {
+    while (Util.strictlyBetween(key, prev.key, prev.successor.id) || key == prev.successor.id) {
       prev = prev.closestPrecedingFinger(key);
     }
     return prev;
@@ -74,11 +88,15 @@ public final class Node<K, V> {
    */
   Node<K, V> closestPrecedingFinger(int key) {
     for (int i = m - 1; i >= 0; i--) {
-      if (Util.strictlyBetween(finger.get(i).id, config.id, key)) {
+      if (Util.strictlyBetween(finger.get(i).id, this.key, key)) {
         return finger.get(i).node;
       }
     }
     return this;
+  }
+
+  void initFingerTable(Node<K, V> newNode) {
+
   }
 
   /**
@@ -98,18 +116,6 @@ public final class Node<K, V> {
    * @param document Document to be stored
    */
   void put(Resource<K, V> document) {
-  }
-
-  private final static class Config {
-    private final String host;
-    private final int port;
-    private final int id;
-
-    private Config(String host, int port) {
-      this.host = host;
-      this.port = port;
-      this.id = host.hashCode();
-    }
   }
 
   private final static class Resource<K, V> {
