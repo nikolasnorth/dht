@@ -15,9 +15,7 @@ public final class Util {
    * @return true iff strictly between, false otherwise
    */
   public static boolean strictlyBetween(String key, String a, String b) {
-    BigInteger bigKey = new BigInteger(key);
-    BigInteger bigA = new BigInteger(a);
-    BigInteger bigB = new BigInteger(b);
+    BigInteger bigKey = new BigInteger(key), bigA = new BigInteger(a), bigB = new BigInteger(b);
     if (bigA.compareTo(bigB) < 0) {
       return bigA.compareTo(bigKey) < 0 && bigB.compareTo(bigKey) >= 0;
     } else if (a.compareTo(b) > 0) {
